@@ -5,7 +5,7 @@ from lexererr import *
 }
 
 @lexer::members {
-def emit(self):
+def emit(self): 
     tk = self.type
     if tk == self.UNCLOSE_STRING:       
         result = super().emit();
@@ -25,7 +25,67 @@ options{
 }
 
 // TODO: Define grammar rules here
-program: EOF;
+program 
+    : (structdec | functiondec)* EOF
+    ;
+//--------------------------------PARSER--------------------
+//struct Declare
+structdec
+    : STRUCT ID LBRACE structmem+ RBRACE SEMI
+    ;
+
+//struct members
+structmem
+    : type ID SEMI
+    ;
+// function Declare
+functiondec
+    : (type | VOID)? ID LPAREN (parameterlist)? RPAREN block
+    ;
+// parameter list
+parameterlist
+    : parameter (COMMA parameter)*
+    ;
+
+// SINGLE parameter
+parameter
+    : type ID 
+    ;
+
+// STATEMENT block
+block   
+    : LBRACE RBRACE
+    ;
+//----------------------------LEXER----------------------
+//type
+type
+    : INT
+    | FLOAT
+    | STRING
+    | AUTO
+    | ID        
+//    | STRUCT ID
+    ;
+// KEYWORD
+INT     : 'int';
+FLOAT   : 'float';
+STRING  : 'string';
+VOID    : 'void';
+STRUCT  : 'struct';
+AUTO    : 'auto';
+
+// SEPARATOR 
+LPAREN  : '(';
+RPAREN  : ')';
+LBRACE  : '{';
+RBRACE  : '}';
+COMMA   : ',';
+SEMI    : ';';
+
+//IDENTIFIER
+ID 
+    :[a-zA-Z_] [a-zA-Z_0-9]*
+    ;
 
 WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs
 
