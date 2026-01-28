@@ -31,7 +31,7 @@ program
 //-------------------------------- PARSER --------------------
 //struct Declare
 structdec
-    : STRUCT ID LBRACE structmem+ RBRACE SEMI
+    : STRUCT ID LBRACE structmem* RBRACE SEMI
     ;
 
 //struct members
@@ -54,22 +54,21 @@ parameter
 
 // STATEMENT block
 block   
-    : LBRACE STATEMENT* RBRACE
+    : LBRACE stmt* RBRACE
     ;
 
 //STATEMENT
-STATEMENT
-    : block                                             # Block
-    | varDeclStmt                                       # VarDec
-    | IF LPAREN expr RPAREN stmt (ELSE stmt)?           # If
-    | WHILE LPAREN expr RPAREN stmt                     # While
+stmt
+    : block                                                 # Blockstmt
+    | varDeclStmt                                           # VarDec
+    | IF LPAREN expr RPAREN stmt (ELSE stmt)?               # If
+    | WHILE LPAREN expr RPAREN stmt                         # While
     | FOR LPAREN forInit? SEMI expr? SEMI expr? RPAREN stmt # For
-    | SWITCH LPAREN expr RPAREN LBRACE switchCase* RBRACE # Switch
-    | BREAK SEMI                                        # Break
-    | CONTINUE SEMI                                     # Continue
-    | RETURN expr? SEMI                                 # Return
-    | expr SEMI                                         # Expr
-    | SEMI                                              # Empty
+    | SWITCH LPAREN expr RPAREN LBRACE switchCase* RBRACE   # Switch
+    | BREAK SEMI                                            # Break
+    | CONTINUE SEMI                                         # Continue
+    | RETURN expr? SEMI                                     # Return
+    | expr SEMI                                             # Exprstmt
     ;
 
 varDeclStmt
@@ -77,12 +76,16 @@ varDeclStmt
     ;
 
 varDecl
-    : type ID ASSIGN (expr)?
-    | AUTO ID ASSIGN (expr)?
+    : type ID (ASSIGN expr)?
+    | AUTO ID (ASSIGN expr)?
+    ;
+
+structInit
+    : LBRACE (expr (COMMA expr)*)? RBRACE
     ;
 
 switchCase
-    : (CASE expr COLON | DEFAULT COLON)+ STATEMENT*
+    : (CASE expr COLON | DEFAULT COLON)+ stmt*
     ;
 
 forInit
@@ -93,10 +96,10 @@ forInit
 //expressions
 expr
     : primary                                           # PrimaryExpr
+    | expr DOT ID                                       # MemberAccessExpr
     | expr (INC | DEC)                                  # PostfixExpr
     | (INC | DEC) expr                                  # PrefixExpr
-    | (BANG | ADD | SUB) expr                           # UnaryExpr
-    | expr DOT ID                                       # MemberAccessExpr
+    | (NOT | ADD | SUB) expr                            # UnaryExpr
     | expr (MUL | DIV | MOD) expr                       # MultiExpr
     | expr (ADD | SUB) expr                             # AddExpr
     | expr (LT | GT | LE | GE) expr                     # RelationalExpr
@@ -109,6 +112,7 @@ expr
 primary
     : LPAREN expr RPAREN
     | literal
+    | structInit
     | ID LPAREN (expr (COMMA expr)*)? RPAREN  // Function Call
     | ID
     ;
@@ -122,53 +126,11 @@ type
     : INT 
     | FLOAT 
     | STRING 
-    | AUTO
+//   | AUTO
     | ID  
     ;
 
 //------------------------------ LEXER ------------------------------
-
-FLOAT_LIT
-    : [0-9]+ '.' [0-9]* EXPONENT?
-    | '.' [0-9]+ EXPONENT?
-    | [0-9]+ EXPONENT
-    ;
-
-fragment EXPONENT : [eE] [+-]? [0-9]+ ;
-
-INT_LIT : '0' | [1-9] [0-9]* ;
-
-STRING_LIT : '"' (ESC_SEQ | ~["\\\r\n])* '"' ;
-
-fragment ESC_SEQ : '\\' [bfrn"t\\] ;
-
-// SEPARATOR
-LPAREN  : '(';
-RPAREN  : ')';
-LBRACE  : '{';
-RBRACE  : '}';
-COMMA   : ',';
-SEMI    : ';';
-
-//Operator
-ADD     : '+';
-SUB     : '-';
-MUL     : '*';
-DIV     : '/';
-MOD     : '%';
-EQUAL   : '==';
-NOTEQUAL: '!=';
-LT      : '<';
-GT      : '>';
-LE      : '<=';
-GE      : '>=';
-OR      : '||';
-AND     : '&&';
-NOT     : '!';
-INC     : '++';
-DEC     : '--';
-ASSIGN  : '=';
-MEMACC  : '.';
 
 // Keyword
 BREAK   : 'break';
@@ -188,6 +150,51 @@ VOID    : 'void';
 STRUCT  : 'struct';
 AUTO    : 'auto';
 
+FLOAT_LIT
+    : [0-9]+ '.' [0-9]* EXPONENT?
+    | '.' [0-9]+ EXPONENT?
+    | [0-9]+ EXPONENT
+    ;
+
+fragment EXPONENT : [eE] [+-]? [0-9]+ ;
+
+INT_LIT : '0' | [1-9] [0-9]* ;
+
+STRING_LIT : '"' (ESC_SEQ | ~["\\\r\n])* '"' { self.text = self.text[1:-1] };
+
+fragment ESC_SEQ : '\\' [bfrn"t\\] ;
+
+// SEPARATOR
+LPAREN  : '(';
+RPAREN  : ')';
+LBRACE  : '{';
+RBRACE  : '}';
+COMMA   : ',';
+SEMI    : ';';  
+COLON   : ':';
+
+//Operator
+EQUAL   : '==';
+NOTEQUAL: '!=';
+LE      : '<=';
+GE      : '>=';
+OR      : '||';
+AND     : '&&';
+INC     : '++';
+DEC     : '--';
+ADD     : '+';
+SUB     : '-';
+MUL     : '*';
+DIV     : '/';
+MOD     : '%';
+LT      : '<';
+GT      : '>';
+NOT     : '!';
+ASSIGN  : '=';
+DOT     : '.';
+
+
+
 //Identifier
 ID 
     :[a-zA-Z_] [a-zA-Z_0-9]*
@@ -198,7 +205,7 @@ BLOCK_COMMENT : '/*' .*? '*/' -> skip ;
 LINE_COMMENT  : '//' ~[\r\n]* -> skip ;
 
 //Character Set
-WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs
+WS : [ \t\r\n\f]+ -> skip ; // skip spaces, tabs
 
 ERROR_CHAR: .;
 ILLEGAL_ESCAPE:.;
