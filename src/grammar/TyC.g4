@@ -162,6 +162,13 @@ INT_LIT : '0' | [1-9] [0-9]* ;
 
 STRING_LIT : '"' (ESC_SEQ | ~["\\\r\n])* '"' { self.text = self.text[1:-1] };
 
+// Error
+ILLEGAL_ESCAPE : '"' (ESC_SEQ | ~["\\\r\n])* '\\' ~[bfrn"t\\] ;
+
+// Error:
+UNCLOSE_STRING : '"' (ESC_SEQ | ~["\\\r\n])* ;
+
+
 fragment ESC_SEQ : '\\' [bfrn"t\\] ;
 
 // SEPARATOR
@@ -208,5 +215,5 @@ LINE_COMMENT  : '//' ~[\r\n]* -> skip ;
 WS : [ \t\r\n\f]+ -> skip ; // skip spaces, tabs
 
 ERROR_CHAR: .;
-ILLEGAL_ESCAPE:.;
-UNCLOSE_STRING:.;
+
+
