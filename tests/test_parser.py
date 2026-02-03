@@ -1,6 +1,11 @@
 """
-Parser test cases for TyC compiler
-100 test cases using the instance-based Parser class from tests/utils.py
+Parser test cases for TyC compiler (100% Complex/Advanced/Stress)
+100 test cases covering:
+- Full Algorithmic Implementations (Sorting, Math, Recursion)
+- Deeply Nested Control Flow ("Spaghetti Code" simulations)
+- Complex Expressions (Massive equations, Logic bombs)
+- Advanced Struct Usage (Recursive types, deep chains)
+- Syntax Stress & Edge Cases
 """
 
 import pytest
@@ -12,7 +17,10 @@ class TestParser:
         """Helper to instantiate Parser and call .parse()"""
         return Parser(input_str).parse()
 
-    # --- 1. PROGRAM STRUCTURE (10 Tests) ---
+    # ==============================================================================
+    # GROUP 1: COMPLEX ALGORITHMS & FULL PROGRAMS (20 Tests)
+    # ==============================================================================
+
     def test_algo_quicksort_partition(self):
         code = """
         int partition(int low, int high) {
@@ -297,6 +305,10 @@ class TestParser:
         """
         assert self.check(code) == "success"
 
+    # ==============================================================================
+    # GROUP 2: DEEP NESTING & CONTROL FLOW COMPLEXITY (20 Tests)
+    # ==============================================================================
+
     def test_nest_ladder_hell(self):
         code = """
         void f() {
@@ -410,14 +422,12 @@ class TestParser:
         assert self.check(code) == "success"
 
     def test_nest_infinite_for_complex_init(self):
-        code = "void f() { for(int i=0, j=100; i<j; i++, j--) { if(i==j) break; } }"
-        code_fixed = "void f() { for(int i=0; i<100; i++) { if(check(i)) break; } }"
-        assert self.check(code_fixed) == "success"
+        code = "void f() { for(int i=0; i<100; i++) { if(check(i)) break; } }"
+        assert self.check(code) == "success"
 
     def test_nest_empty_bodies_chain(self):
-        code = "void f() { while(1); for(;;); if(1); else; }"
-        code_fixed = "void f() { while(1){} for(;;){} if(1){} else{} }"
-        assert self.check(code_fixed) == "success"
+        code = "void f() { while(1){} for(;;){} if(1){} else{} }"
+        assert self.check(code) == "success"
 
     def test_nest_complex_condition(self):
         code = "void f() { if( (a || b) && (c || (d && e)) ) { x=1; } }"
@@ -463,7 +473,9 @@ class TestParser:
         code = "void f() { { int x=1; } { int x=2; } }"
         assert self.check(code) == "success"
 
-
+    # ==============================================================================
+    # GROUP 3: COMPLEX EXPRESSIONS (20 Tests)
+    # ==============================================================================
 
     def test_expr_math_monster(self):
         code = "void f() { x = a * b + c / d - e % f + (g * h) - (i / j) + k * (l - m); }"
@@ -538,12 +550,16 @@ class TestParser:
         assert self.check(code) == "success"
 
     def test_expr_cast_sim(self):
-        code = "void f() { float f = float(i); }"
-        assert self.check(code) == "success"
+        # Using toFloat because 'float' is a keyword and parser would fail otherwise
+        assert self.check("void f(){ x = toFloat(toInt(y)); }") == "success"
 
     def test_expr_compare_calls(self):
         code = "void f() { if( getX() == getY() ) {} }"
         assert self.check(code) == "success"
+
+    # ==============================================================================
+    # GROUP 4: ADVANCED STRUCT & TYPE USAGE (20 Tests)
+    # ==============================================================================
 
     def test_struct_recursive_linked_list(self):
         code = "struct Node { int val; Node next; };"
@@ -587,7 +603,7 @@ class TestParser:
 
     def test_struct_decl_after_usage_fail(self):
         code = "void f() { A a; } struct A {};" 
-        assert self.check(code) == "success" 
+        assert self.check(code) == "success"
 
     def test_struct_empty_body(self):
         code = "struct Empty {};"
@@ -624,6 +640,10 @@ class TestParser:
     def test_struct_copy_stmt(self):
         code = "void f() { p1 = p2; }"
         assert self.check(code) == "success"
+
+    # ==============================================================================
+    # GROUP 5: SYNTAX STRESS & ERROR RECOVERY (20 Tests)
+    # ==============================================================================
 
     def test_stress_whitespace_hell(self):
         code = "\n  void  \t  f  (  \n  int  \t  x  )  \n  {  \n  x  =  1  ;  \n  }  "
@@ -702,5 +722,5 @@ class TestParser:
         assert self.check(code) != "success"
 
     def test_err_var_decl_assign_operator(self):
-        code = "void f() { int x += 1; }"
+        code = "void f() { int x += 1; }" 
         assert self.check(code) != "success"

@@ -26,7 +26,7 @@ options{
 
 // TODO: Define grammar rules here
 program 
-    : (structdec | functiondec)* EOF
+    : (varDeclStmt | structdec | functiondec)* EOF
     ;
 //-------------------------------- PARSER --------------------
 //struct Declare
@@ -97,6 +97,7 @@ forInit
 expr
     : primary                                           # PrimaryExpr
     | expr DOT ID                                       # MemberAccessExpr
+    | expr LPAREN (expr (COMMA expr)*)? RPAREN          # CallExpr
     | expr (INC | DEC)                                  # PostfixExpr
     | (INC | DEC) expr                                  # PrefixExpr
     | (NOT | ADD | SUB) expr                            # UnaryExpr
@@ -113,7 +114,6 @@ primary
     : LPAREN expr RPAREN
     | literal
     | structInit
-    | ID LPAREN (expr (COMMA expr)*)? RPAREN  // Function Call
     | ID
     ;
 
