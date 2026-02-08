@@ -561,84 +561,230 @@ class TestParser:
     # GROUP 4: ADVANCED STRUCT & TYPE USAGE (20 Tests)
     # ==============================================================================
 
-    def test_struct_recursive_linked_list(self):
-        code = "struct Node { int val; Node next; };"
+    def test_struct_complex_mutual_recursion(self):
+        # Mutual recursion: Node -> Edge -> Node
+        # Parser should accept 'Edge' as a type even if defined later (syntactically)
+        code = """
+        struct Node { 
+            int id; 
+            float value; 
+            Edge outgoing; 
+            Edge incoming; 
+        }; 
+        struct Edge { 
+            Node src; 
+            Node dest; 
+            float weight; 
+            int flags;
+        };
+        """
         assert self.check(code) == "success"
 
-    def test_struct_recursive_binary_tree(self):
-        code = "struct TreeNode { int val; TreeNode left; TreeNode right; };"
+    def test_struct_deep_nested_hierarchy(self):
+        # 4-level deep structure hierarchy
+        code = """
+        struct Geo { float lat; float lon; };
+        struct City { string name; Geo location; int population; };
+        struct Address { int streetNum; string streetName; City city; };
+        struct User { int id; string username; Address billingAddr; Address shippingAddr; };
+        """
         assert self.check(code) == "success"
 
-    def test_struct_nested_declarations(self):
-        code = "struct Address { string street; int zip; }; struct User { string name; Address addr; };"
+    def test_struct_deep_access_logic(self):
+        # Accessing deeply nested members in complex expressions
+        code = """
+        void process(User u) {
+            if (u.billingAddr.city.location.lat > 0.0 && u.shippingAddr.city.population > 1000000) {
+                print(u.billingAddr.streetName);
+            }
+            float dist = sqrt( pow(u.billingAddr.city.location.lat, 2) + pow(u.billingAddr.city.location.lon, 2) );
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_deep_access_chain(self):
-        code = "void f() { int zip = user.profile.address.zipCode; }"
+    def test_struct_factory_pattern(self):
+        # Function returning a complex struct initialized with params
+        code = """
+        struct Rect { float x; float y; float w; float h; };
+        Rect createRect(float cx, float cy, float size) {
+            float half = size / 2.0;
+            Rect r = { cx - half, cy - half, size, size };
+            return r;
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_return_type_complex(self):
-        code = "User createUser(string name) { User u = {name}; return u; }"
+    def test_struct_param_manipulation(self):
+        # Passing structs, modifying local copies, and accessing members
+        code = """
+        void updatePhysics(Body b, float dt) {
+            b.pos.x = b.pos.x + b.vel.x * dt;
+            b.pos.y = b.pos.y + b.vel.y * dt;
+            b.vel.x = b.vel.x * 0.99; // Friction
+            b.acc.x = 0.0;
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_param_passing(self):
-        code = "void processTree(TreeNode root) { if(root==null) return; }"
+    def test_struct_nested_init_heavy(self):
+        # 3-level nested initialization expression
+        code = """
+        void init() {
+            // Polygon -> Vertices -> Coordinates
+            Triangle t = { 
+                {0.0, 0.0, 1.0}, 
+                {10.0, 0.0, 1.0}, 
+                {5.0, 10.0, 1.0} 
+            };
+            Mesh m = { t, {1.0, 0.0, 0.0} }; // Triangle + Color
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_init_complex_nesting(self):
-        code = "void f() { Graph g = { {Node1, Node2}, {Edge1, Edge2} }; }"
+    def test_struct_method_chaining_sim(self):
+        # Simulating method chaining: obj.getComponent().update().value
+        code = """
+        void f() { 
+            float val = entity.getTransform().getPosition().x; 
+            game.getPlayer(1).inventory.getItem(0).use();
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_member_func_sim_call(self):
-        code = "void f() { obj.method(arg); }"
+    def test_struct_array_sim_access(self):
+        # Accessing "arrays" via function calls inside structs
+        code = """
+        void f() {
+            int val = matrix.getRow(i).getCol(j).val;
+            list.get(0).next.get(1).prev.val = 100;
+        }
+        """
         assert self.check(code) == "success"
 
-    def test_struct_array_sim_field(self):
-        code = "struct Vector3 { float x; float y; float z; };"
+    def test_struct_mixed_type_fields(self):
+        # Struct with all supported types including other structs
+        code = """
+        struct Record {
+            int id;
+            float score;
+            string label;
+            Record next;
+            Record prev;
+            Metadata meta;
+        };
+        """
         assert self.check(code) == "success"
 
-    def test_struct_many_fields_types(self):
-        code = "struct Big { int a; float b; string c; Big next; Other o; };"
-        assert self.check(code) == "success"
-
-    def test_struct_decl_after_usage_fail(self):
-        code = "void f() { A a; } struct A {};" 
-        assert self.check(code) == "success"
-
-    def test_struct_empty_body(self):
-        code = "struct Empty {};"
-        assert self.check(code) == "success"
-
-    def test_struct_var_shadow_type(self):
-        code = "struct A{}; void f() { int A = 1; }"
-        assert self.check(code) == "success"
-
-    def test_struct_case_sensitivity(self):
-        code = "struct Point{}; struct POINT{};"
-        assert self.check(code) == "success"
-
-    def test_struct_keyword_name_fail(self):
-        code = "struct while { int x; };"
+    def test_struct_decl_inside_block_fail(self):
+        # Struct definitions are only allowed at global scope (Syntax Error check)
+        code = """
+        void f() {
+            if (true) {
+                struct Local { int x; }; // Should fail
+            }
+        }
+        """
         assert self.check(code) != "success"
 
-    def test_struct_field_keyword_fail(self):
-        code = "struct A { int if; };"
-        assert self.check(code) != "success"
-
-    def test_struct_missing_semi_block(self):
-        code = "struct A { int x }"
-        assert self.check(code) != "success"
-
-    def test_struct_missing_semi_after(self):
-        code = "struct A { int x; }"
-        assert self.check(code) != "success"
-
-    def test_struct_init_expr_vars(self):
-        code = "void f() { Point p = { x+1, y*2 }; }"
+    def test_struct_empty_definitions(self):
+        # Empty structs are valid syntactically
+        code = """
+        struct Signal {}; 
+        struct Mutex {};
+        void wait(Mutex m, Signal s) {}
+        """
         assert self.check(code) == "success"
 
-    def test_struct_copy_stmt(self):
-        code = "void f() { p1 = p2; }"
+    def test_struct_variable_shadowing_types(self):
+        # Stress test: Variable name same as Struct type name
+        code = """
+        struct Vector { int x; };
+        void f() {
+            Vector Vector; // Variable 'Vector' of type 'Vector'
+            Vector.x = 1;
+            int x = Vector.x;
+        }
+        """
+        assert self.check(code) == "success"
+
+    def test_struct_case_sensitivity_strict(self):
+        # 'Point' and 'POINT' are different types
+        code = """
+        struct Point { int x; };
+        struct POINT { float x; };
+        void f() {
+            Point p1;
+            POINT p2;
+            p1.x = 1;
+            p2.x = 1.5;
+        }
+        """
+        assert self.check(code) == "success"
+
+    def test_struct_keyword_as_field_name_fail(self):
+        # Using a keyword as a field name
+        code = "struct A { int while; float if; };"
+        assert self.check(code) != "success"
+
+    def test_struct_field_missing_semicolon_fail(self):
+        # Missing semicolon inside struct definition
+        code = """
+        struct A { 
+            int x
+            int y; 
+        };
+        """
+        assert self.check(code) != "success"
+
+    def test_struct_malformed_declaration_fail(self):
+        # Missing name or braces
+        code = "struct { int x; };" # Anonymous struct not allowed
+        assert self.check(code) != "success"
+
+    def test_struct_init_expr_with_vars(self):
+        # Initializing struct with variables and math expressions
+        code = """
+        void setup(int w, int h) {
+            int area = w * h;
+            Box b = { 0, 0, w, h, area + 10 };
+            Config c = { b, "main_window" };
+        }
+        """
+        assert self.check(code) == "success"
+
+    def test_struct_assignment_copy(self):
+        # Assigning structs to one another
+        code = """
+        void swap(Point a, Point b) {
+            Point temp = a;
+            a = b;
+            b = temp;
+            temp.x = 0; // Should affect only temp
+        }
+        """
+        assert self.check(code) == "success"
+
+    def test_struct_member_as_function_arg(self):
+        # Passing member fields directly to functions
+        code = """
+        void draw() {
+            line(p1.x, p1.y, p2.x, p2.y);
+            color(style.fg.r, style.fg.g, style.fg.b);
+        }
+        """
+        assert self.check(code) == "success"
+
+    def test_struct_nested_if_access(self):
+        # Complex access inside nested if statement
+        code = """
+        void f() {
+            if (node.next != null) {
+                if (node.next.val > 0) {
+                    node.next.next.val = node.val * 2;
+                }
+            }
+        }
+        """
         assert self.check(code) == "success"
 
     # ==============================================================================
